@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BYOD Security Checker - Google Sign-In</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo {
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .domain-notice {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .domain-notice h3 {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #357ae8;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .email-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 15px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .hidden {
+            display: none;
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+            font-size: 14px;
+        }
+        .instructions h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions code {
+            background: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://media.licdn.com/dms/image/v2/C4E0BAQE5W79bOfHl7Q/company-logo_200_200/company-logo_200_200/0/1636062410006/saas_group_logo?e=2147483647&v=beta&t=7hr-3BKoq_uS37G8BoCbQYJeMPDpGNNp23BSEgyEAS4" alt="saas.group" class="logo" width="80" height="80">
+        <div class="subtitle">BYOD Security Checker</div>
+        
+        <div class="domain-notice">
+            <h3>Only saas.group users will be able to Sign in with their Google account</h3>
+        </div>
+        
+        <div id="signin-section">
+            <div class="instructions">
+                <h4>Instructions:</h4>
+                <ol>
+                    <li>Click the "Sign in with Google" button below</li>
+                    <li>Sign in with your company email address</li>
+                    <li>You'll be redirected after successful authentication</li>
+                    <li>Return to the terminal to continue with security checks</li>
+                </ol>
+            </div>
+            
+            <div id="g_id_onload"
+                 data-client_id="405677217769-lh67b56pi6p94gmuoh1q4hrhlkl7ds9f.apps.googleusercontent.com"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"></div>
+            
+            <div class="status info">
+                <strong>Note:</strong> This implementation uses Google's Identity Services library for client-side authentication. 
+                No secrets are stored in the code - only a public Client ID is required.
+            </div>
+        </div>
+        
+        <div id="result-section" class="hidden">
+            <div id="status-message" class="status"></div>
+            <div id="email-display" class="email-display"></div>
+            <button id="continue-btn" class="btn" onclick="continueToApp()">Continue to Security Check</button>
+            <button id="retry-btn" class="btn" onclick="retrySignIn()">Try Again</button>
+        </div>
+    </div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        // Valid domains list (same as Python script)
+        const validDomains = new Set([
+            'addsearch.co', 'addsearch.com', 'advancedshippingmanager.com', 'beekast.com',
+            'crosstalent-rh.fr', 'crosstalent.at', 'crosstalent.be', 'crosstalent.co.uk',
+            'crosstalent.com', 'crosstalent.de', 'crosstalent.eu', 'crosstalent.fr',
+            'crosstalent.it', 'crosstalent.nl', 'dashthis.com', 'getprerender.com',
+            'getrewardful.com', 'getscraperapi.com', 'getusersnap.com', 'gfconsulting.info',
+            'git-tower.com', 'gominga.com', 'infonline.de', 'juicer.io',
+            'keyword-rank-tracking.com', 'keyword.com', 'keyword.net', 'keyword.org',
+            'kingwebmaster.com', 'myworks.software', 'picdrop.com', 'picdrop.de',
+            'pipelinecrm.com', 'pipelinedeals.com', 'pipelinedealsco.com', 'pipelinesales.com',
+            'prerender.io', 'rewardful.com', 'rewardful.io', 'saas.blackfriday', 'saas.group',
+            'schumacher.me', 'scraperapi.cloud', 'scraperapi.co', 'scraperapi.com',
+            'scraperapi.io', 'seobility.net', 'timebutler.com', 'timebutler.de',
+            'tryprerender.com', 'tryrewardful.co', 'tryrewardful.com', 'tsventures.io',
+            'userewardful.com', 'usersnap.com', 'zenloop.com'
+        ]);
+
+        function handleCredentialResponse(response) {
+            try {
+                // Decode the JWT token to get user information
+                const payload = JSON.parse(atob(response.credential.split('.')[1]));
+                const email = payload.email;
+                const domain = email.split('@')[1].toLowerCase();
+                
+                // Validate domain
+                if (validDomains.has(domain)) {
+                    showSuccess(email);
+                    // Store email for Python script to read
+                    localStorage.setItem('byod_validated_email', email);
+                    localStorage.setItem('byod_auth_status', 'success');
+                } else {
+                    showError('Access denied: This tool is restricted to saas.group employees only.', email);
+                    localStorage.setItem('byod_auth_status', 'failed');
+                }
+            } catch (error) {
+                showError('Authentication failed: ' + error.message);
+                localStorage.setItem('byod_auth_status', 'error');
+            }
+        }
+
+        function showSuccess(email) {
+            document.getElementById('signin-section').classList.add('hidden');
+            document.getElementById('result-section').classList.remove('hidden');
+            document.getElementById('status-message').className = 'status success';
+            document.getElementById('status-message').textContent = '✓ Authentication successful!';
+            document.getElementById('email-display').textContent = email;
+            document.getElementById('retry-btn').classList.add('hidden');
+        }
+
+        function showError(message, email = '') {
+            document.getElementById('signin-section').classList.add('hidden');
+            document.getElementById('result-section').classList.remove('hidden');
+            document.getElementById('status-message').className = 'status error';
+            document.getElementById('status-message').textContent = '✗ ' + message;
+            document.getElementById('email-display').textContent = email;
+            document.getElementById('continue-btn').classList.add('hidden');
+        }
+
+        function continueToApp() {
+            // Signal to Python script that authentication is complete
+            localStorage.setItem('byod_auth_complete', 'true');
+            
+            // Send email to Python script via HTTP request
+            const email = document.getElementById('email-display').textContent;
+            fetch('/auth-complete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: email })
+            }).then(() => {
+                // Wait a bit before closing to allow server response
+                setTimeout(() => window.close(), 100);
+            }).catch(() => {
+                // If HTTP request fails, store in localStorage as backup
+                localStorage.setItem('byod_validated_email', email);
+                setTimeout(() => window.close(), 100);
+            });
+        }
+
+        function retrySignIn() {
+            document.getElementById('signin-section').classList.remove('hidden');
+            document.getElementById('result-section').classList.add('hidden');
+            localStorage.removeItem('byod_validated_email');
+            localStorage.removeItem('byod_auth_status');
+            localStorage.removeItem('byod_auth_complete');
+        }
+
+        // Check if we're in development mode (no client ID set)
+        window.addEventListener('load', function() {
+            const clientId = document.querySelector('#g_id_onload').getAttribute('data-client_id');
+            if (clientId === 'YOUR_GOOGLE_CLIENT_ID') {
+                document.getElementById('status-message').className = 'status info';
+                document.getElementById('status-message').textContent = 'Please configure your Google Client ID first (see instructions below)';
+            }
+        });
+    </script>
+</body>
+</html>
