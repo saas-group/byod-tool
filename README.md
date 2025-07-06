@@ -4,17 +4,41 @@ A comprehensive security compliance checker for BYOD (Bring Your Own Device) pol
 
 ## Quick Install & Run
 
+### macOS & Linux
 Install and run the BYOD Security Checker with a single command:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/saas-group/byod-tool/main/download.sh | bash
+curl -sSL https://raw.githubusercontent.com/saas-group/byod-tool/main/download.sh | sh
 cd ~/byod-tool
 python3 byod_security_check.py
 ```
 
 **One-line install and run:**
 ```bash
-curl -sSL https://raw.githubusercontent.com/saas-group/byod-tool/main/download.sh | bash && cd ~/byod-tool && python3 byod_security_check.py
+curl -sSL https://raw.githubusercontent.com/saas-group/byod-tool/main/download.sh | sh && cd ~/byod-tool && python3 byod_security_check.py
+```
+
+### Windows
+
+**Option 1: PowerShell (Recommended)**
+```powershell
+iwr -useb https://raw.githubusercontent.com/saas-group/byod-tool/main/install.ps1 | iex
+```
+
+**Option 2: Download and run batch file**
+1. Download: [install.bat](https://raw.githubusercontent.com/saas-group/byod-tool/main/install.bat)
+2. Right-click and "Run as administrator" (or double-click)
+
+**Option 3: Manual PowerShell**
+```powershell
+# Create directory and download files
+New-Item -ItemType Directory -Path "$env:USERPROFILE\byod-tool" -Force
+Set-Location "$env:USERPROFILE\byod-tool"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/saas-group/byod-tool/main/byod_security_check.py" -OutFile "byod_security_check.py"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/saas-group/byod-tool/main/google_signin.html" -OutFile "google_signin.html"
+
+# Run the tool
+python byod_security_check.py
 ```
 
 ## Features
