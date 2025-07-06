@@ -6,28 +6,16 @@ A comprehensive security compliance checker for BYOD (Bring Your Own Device) pol
 
 ### macOS & Linux
 
-**Option 1: Direct install (Recommended)**
+**For macOS users: Install bash first (if needed)**
 ```bash
-# Create directory and download files
-mkdir -p ~/byod-tool && cd ~/byod-tool
-curl -sSL "https://raw.githubusercontent.com/saas-group/byod-tool/main/byod_security_check.py" -o byod_security_check.py
-curl -sSL "https://raw.githubusercontent.com/saas-group/byod-tool/main/google_signin.html" -o google_signin.html
-chmod +x byod_security_check.py
-
-# Run the tool
-python3 byod_security_check.py
+# Install bash via Homebrew (if not already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install bash
 ```
 
-**Option 2: Using install script**
+**Simple install and run:**
 ```bash
-# Download and run install script
-curl -sSL https://raw.githubusercontent.com/saas-group/byod-tool/main/download.sh | bash
-cd ~/byod-tool && python3 byod_security_check.py
-```
-
-**Option 3: One-line install and run**
-```bash
-mkdir -p ~/byod-tool && cd ~/byod-tool && curl -sSL "https://raw.githubusercontent.com/saas-group/byod-tool/main/byod_security_check.py" -o byod_security_check.py && curl -sSL "https://raw.githubusercontent.com/saas-group/byod-tool/main/google_signin.html" -o google_signin.html && chmod +x byod_security_check.py && python3 byod_security_check.py
+curl -sSL https://raw.githubusercontent.com/saas-group/byod-tool/main/download.sh | bash && cd ~/byod-tool && python3 byod_security_check.py
 ```
 
 ### Windows
