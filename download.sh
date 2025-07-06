@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Simple BYOD Tool Downloader
-# Usage: curl -sSL https://raw.githubusercontent.com/saasgroup/byod-tool/main/download.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/saas-group/byod-tool/main/download.sh | bash
 
 echo "📥 Downloading BYOD Security Checker..."
 
@@ -10,8 +10,8 @@ mkdir -p ~/byod-tool
 cd ~/byod-tool
 
 # Download files
-curl -sSL "https://raw.githubusercontent.com/saasgroup/byod-tool/main/byod_security_check.py" -o byod_security_check.py
-curl -sSL "https://raw.githubusercontent.com/saasgroup/byod-tool/main/google_signin.html" -o google_signin.html
+curl -sSL "https://raw.githubusercontent.com/saas-group/byod-tool/main/byod_security_check.py" -o byod_security_check.py
+curl -sSL "https://raw.githubusercontent.com/saas-group/byod-tool/main/google_signin.html" -o google_signin.html
 
 # Make executable
 chmod +x byod_security_check.py

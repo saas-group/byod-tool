@@ -1,6 +1,21 @@
 # BYOD Security Checker with Google Sign-In
 
-A comprehensive security compliance checker for BYOD (Bring Your Own Device) policies that now includes secure Google Sign-In authentication.
+A comprehensive security compliance checker for BYOD (Bring Your Own Device) policies that includes secure Google Sign-In authentication.
+
+## Quick Install & Run
+
+Install and run the BYOD Security Checker with a single command:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/saas-group/byod-tool/main/download.sh | bash
+cd ~/byod-tool
+python3 byod_security_check.py
+```
+
+**One-line install and run:**
+```bash
+curl -sSL https://raw.githubusercontent.com/saas-group/byod-tool/main/download.sh | bash && cd ~/byod-tool && python3 byod_security_check.py
+```
 
 ## Features
 
@@ -13,23 +28,14 @@ A comprehensive security compliance checker for BYOD (Bring Your Own Device) pol
   - Guest account status
 - **Automated Reporting**: Sends results to n8n webhook for centralized monitoring
 
-## Authentication Methods
+## Authentication
 
-### 1. Google Sign-In (Recommended)
+### Google Sign-In (Required)
 - **Secure**: Uses OAuth 2.0 with no secrets in code
 - **User-friendly**: Web-based authentication flow
 - **Auditable**: Provides proper authentication logs
 
-### 2. Email Validation (Fallback)
-- **Simple**: Direct email input with domain validation
-- **Fallback**: Available when Google Sign-In isn't set up
-
 ## Setup Instructions
-
-### Quick Start (Email Validation)
-```bash
-python3 byod_security_check.py --auth-method email
-```
 
 ### Google Sign-In Setup (Pre-configured)
 
@@ -52,11 +58,8 @@ The Google Client ID is already configured and ready to use!
 
 ### Basic Usage
 ```bash
-# Default: Google Sign-In authentication
+# Run security check with Google Sign-In
 python3 byod_security_check.py
-
-# Use email validation fallback
-python3 byod_security_check.py --auth-method email
 
 # Disable n8n reporting
 python3 byod_security_check.py --no-n8n
@@ -102,14 +105,8 @@ Validates against approved company domains:
 2. **Port conflicts**: The script tries ports 8080-8090 automatically
 3. **Browser issues**: Manually open the displayed URL
 
-### Fallback Authentication
-```bash
-# Skip Google Sign-In entirely
-python3 byod_security_check.py --auth-method email
-```
-
 ### Common Issues
-- **Permission denied**: Run with appropriate permissions for system checks
+- **Permission denied**: The tool now runs without requiring sudo passwords
 - **Network issues**: Check firewall settings for outbound HTTPS
 - **Browser blocked**: Manually copy/paste the authentication URL
 
