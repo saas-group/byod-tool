@@ -98,7 +98,7 @@ class SecurityChecker:
         # Use provided values or fall back to environment variables, then defaults
         self.n8n_webhook_url = (n8n_webhook_url or 
                                os.getenv('N8N_WEBHOOK_URL') or 
-                               'https://n8n.saasgroup.app/webhook-test/5120b2b2-a509-4f63-96e2-fa7f414ec7e2')
+                               'https://n8n.saasgroup.app/webhook/5120b2b2-a509-4f63-96e2-fa7f414ec7e2')
         self.api_key = api_key or os.getenv('N8N_API_KEY')
         self.n8n_username = (n8n_username or 
                             os.getenv('N8N_USERNAME'))
