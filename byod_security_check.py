@@ -3,26 +3,67 @@
 BYOD Security Compliance Checker
 Checks for secure password policy, disk encryption, autolock, and guest accounts
 across macOS, Windows, and Linux platforms.
+
+Version: 2.0.0
+- Fixed macOS compatibility (no Xcode Command Line Tools required)
+- Enhanced error handling and import validation
+- Uses only Python standard library modules - no external dependencies required
+
+Author: saas.group
+Updated: 2024-08-25
 """
 
-import os
-import platform
-import subprocess
+# Check Python version first
 import sys
-import re
-import json
-import requests
-import datetime
-import webbrowser
-import time
-import tempfile
-import shutil
-import threading
-import http.server
-import socketserver
-from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse
-from typing import Dict, Tuple, Optional
+if sys.version_info < (3, 6):
+    print("Error: This script requires Python 3.6 or higher")
+    print(f"Current version: {sys.version}")
+    sys.exit(1)
+
+# Import all required standard library modules with error handling
+try:
+    import os
+    import platform
+    import subprocess
+    import re
+    import json
+    import urllib.request
+    import urllib.parse
+    import urllib.error
+    import base64
+    import datetime
+    import webbrowser
+    import time
+    import tempfile
+    import shutil
+    import threading
+    import http.server
+    import socketserver
+    from http.server import BaseHTTPRequestHandler
+    from urllib.parse import urlparse
+    from typing import Dict, Tuple, Optional
+except ImportError as e:
+    print(f"Error importing required modules: {e}")
+    print("This script requires Python 3.6+ with standard library modules.")
+    print("Please ensure you have a complete Python installation.")
+    sys.exit(1)
+
+# Check for common import mistakes and provide helpful error messages
+def check_for_common_import_issues():
+    """Check for common import issues and provide helpful messages."""
+    # Check if someone accidentally added requests import
+    try:
+        # This will fail if requests is somehow being imported elsewhere
+        import requests
+        print("WARNING: Found 'requests' module imported.")
+        print("This script is designed to work WITHOUT external dependencies.")
+        print("Using built-in urllib instead of requests for HTTP operations.")
+    except ImportError:
+        # This is expected - requests should not be imported
+        pass
+
+# Run the check
+check_for_common_import_issues()
 
 
 class AuthHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -519,22 +560,50 @@ class SecurityChecker:
                 # Get brand (always Apple for macOS)
                 info['brand'] = 'Apple'
                 
-                # Get model
-                success, output = self.run_command('system_profiler SPHardwareDataType')
+                # Get model - try alternative methods first
+                # Try sysctl (should work without Xcode tools)
+                success, output = self.run_command('sysctl -n hw.model')
+                if success and output.strip():
+                    info['model'] = output.strip()
+                
+                # Get serial number - try ioreg first (should work without Xcode tools)
+                success, output = self.run_command('ioreg -c IOPlatformExpertDevice -d 2 | grep IOPlatformSerialNumber')
                 if success:
-                    model_match = re.search(r'Model Name: (.+)', output)
-                    if model_match:
-                        info['model'] = model_match.group(1).strip()
-                    
-                    # Get serial number
-                    serial_match = re.search(r'Serial Number \(system\): (.+)', output)
+                    serial_match = re.search(r'"IOPlatformSerialNumber" = "(.+?)"', output)
                     if serial_match:
                         info['serial'] = serial_match.group(1).strip()
-                    
-                    # Get RAM
-                    ram_match = re.search(r'Memory: (.+)', output)
-                    if ram_match:
-                        info['ram'] = ram_match.group(1).strip()
+                
+                # Get RAM using sysctl (should work without Xcode tools)
+                success, output = self.run_command('sysctl -n hw.memsize')
+                if success and output.strip():
+                    try:
+                        ram_bytes = int(output.strip())
+                        ram_gb = ram_bytes / (1024**3)
+                        info['ram'] = f"{ram_gb:.1f} GB"
+                    except ValueError:
+                        pass
+                
+                # Fallback: try system_profiler only if the above methods failed
+                if info['model'] == 'Unknown' or info['serial'] == 'Unknown' or info['ram'] == 'Unknown':
+                    # Check if system_profiler exists and won't trigger Xcode install
+                    success, output = self.run_command('which system_profiler')
+                    if success and output.strip():
+                        success, output = self.run_command('system_profiler SPHardwareDataType')
+                        if success:
+                            if info['model'] == 'Unknown':
+                                model_match = re.search(r'Model Name: (.+)', output)
+                                if model_match:
+                                    info['model'] = model_match.group(1).strip()
+                            
+                            if info['serial'] == 'Unknown':
+                                serial_match = re.search(r'Serial Number \(system\): (.+)', output)
+                                if serial_match:
+                                    info['serial'] = serial_match.group(1).strip()
+                            
+                            if info['ram'] == 'Unknown':
+                                ram_match = re.search(r'Memory: (.+)', output)
+                                if ram_match:
+                                    info['ram'] = ram_match.group(1).strip()
                 
                 # Get storage info
                 success, output = self.run_command('df -h /')
@@ -639,13 +708,27 @@ class SecurityChecker:
     def run_command(self, command: str, shell: bool = True) -> Tuple[bool, str]:
         """Execute a system command and return success status and output."""
         try:
-            result = subprocess.run(
-                command,
-                shell=shell,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
+            # Check if command might trigger Xcode installation on macOS
+            if self.system == 'darwin' and any(cmd in command for cmd in ['system_profiler']):
+                # Add environment variable to prevent interactive prompts
+                env = os.environ.copy()
+                env['DEVELOPER_DIR'] = ''  # Prevent Xcode tools prompt
+                result = subprocess.run(
+                    command,
+                    shell=shell,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,  # Shorter timeout for potentially problematic commands
+                    env=env
+                )
+            else:
+                result = subprocess.run(
+                    command,
+                    shell=shell,
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
             return result.returncode == 0, result.stdout.strip()
         except (subprocess.TimeoutExpired, subprocess.SubprocessError) as e:
             return False, str(e)
@@ -1162,50 +1245,70 @@ class SecurityChecker:
             
             # Send as POST request with flattened data in the body
             try:
-                response = requests.post(
-                    self.n8n_webhook_url,
-                    json=flat_params,
-                    headers=headers,
-                    auth=auth,
-                    timeout=30
-                )
+                # Prepare request
+                data = json.dumps(flat_params).encode('utf-8')
+                req = urllib.request.Request(self.n8n_webhook_url, data=data, headers=headers)
                 
-                # If POST fails with 404 (not registered), try GET as fallback
-                if response.status_code == 404 and "not registered" in response.text:
-                    print("📡 POST not supported, trying GET with query parameters...")
-                    response = requests.get(
-                        self.n8n_webhook_url,
-                        params=flat_params,
-                        headers=headers,
-                        auth=auth,
-                        timeout=30
-                    )
+                # Add Basic Auth if provided
+                if auth:
+                    credentials = f"{auth[0]}:{auth[1]}"
+                    encoded_credentials = base64.b64encode(credentials.encode('utf-8')).decode('utf-8')
+                    req.add_header('Authorization', f'Basic {encoded_credentials}')
+                
+                try:
+                    with urllib.request.urlopen(req, timeout=30) as response:
+                        response_text = response.read().decode('utf-8')
+                        status_code = response.getcode()
+                except urllib.error.HTTPError as e:
+                    status_code = e.code
+                    response_text = e.read().decode('utf-8')
                     
-                    # If still 404, try simple GET (test webhook behavior)
-                    if response.status_code == 404 and "not registered" in response.text:
-                        print("📡 Webhook appears to be in test mode, trying simple GET...")
-                        response = requests.get(
-                            self.n8n_webhook_url,
-                            headers=headers,
-                            auth=auth,
-                            timeout=30
-                        )
+                    # If POST fails with 404 (not registered), try GET as fallback
+                    if status_code == 404 and "not registered" in response_text:
+                        print("📡 POST not supported, trying GET with query parameters...")
+                        query_string = urllib.parse.urlencode(flat_params)
+                        get_url = f"{self.n8n_webhook_url}?{query_string}"
+                        req = urllib.request.Request(get_url, headers=headers)
+                        
+                        if auth:
+                            req.add_header('Authorization', f'Basic {encoded_credentials}')
+                        
+                        try:
+                            with urllib.request.urlopen(req, timeout=30) as response:
+                                response_text = response.read().decode('utf-8')
+                                status_code = response.getcode()
+                        except urllib.error.HTTPError as e2:
+                            status_code = e2.code
+                            response_text = e2.read().decode('utf-8')
+                            
+                            # If still 404, try simple GET (test webhook behavior)
+                            if status_code == 404 and "not registered" in response_text:
+                                print("📡 Webhook appears to be in test mode, trying simple GET...")
+                                req = urllib.request.Request(self.n8n_webhook_url, headers=headers)
+                                
+                                if auth:
+                                    req.add_header('Authorization', f'Basic {encoded_credentials}')
+                                
+                                try:
+                                    with urllib.request.urlopen(req, timeout=30) as response:
+                                        response_text = response.read().decode('utf-8')
+                                        status_code = response.getcode()
+                                except urllib.error.HTTPError as e3:
+                                    status_code = e3.code
+                                    response_text = e3.read().decode('utf-8')
+                
+                if status_code == 200:
+                    print("✅ Successfully sent results to n8n!")
+                    return True
+                else:
+                    print(f"❌ Failed to send to n8n. Status code: {status_code}")
+                    print(f"Response: {response_text}")
+                    return False
                     
-            except requests.exceptions.RequestException as e:
+            except (urllib.error.URLError, urllib.error.HTTPError) as e:
                 print(f"❌ Network error: {str(e)}")
                 return False
-            
-            if response.status_code == 200:
-                print("✅ Successfully sent results to n8n!")
-                return True
-            else:
-                print(f"❌ Failed to send to n8n. Status code: {response.status_code}")
-                print(f"Response: {response.text}")
-                return False
                 
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Network error sending to n8n: {str(e)}")
-            return False
         except Exception as e:
             print(f"❌ Error sending to n8n: {str(e)}")
             return False
