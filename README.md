@@ -6,13 +6,6 @@ A comprehensive security compliance checker for BYOD (Bring Your Own Device) pol
 
 ### macOS & Linux
 
-**For macOS users: Install bash first (if needed)**
-```bash
-# Install bash via Homebrew (if not already installed)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install bash
-```
-
 **Simple install and run:**
 ```bash
 curl -sSL https://raw.githubusercontent.com/saas-group/byod-tool/main/download.sh | bash && cd ~/byod-tool && python3 byod_security_check.py
@@ -106,4 +99,4 @@ This tool is for internal use by saas.group and its portfolio companies.
 
 ## Support
 
-If you need support running this tool, please reach the Central IT Team on it-support@saas.group or #it-helpdesk in Slack
+If you need support running this tool, please reach the Central IT Team on it-help@saas.group or #it-helpdesk in Slack
